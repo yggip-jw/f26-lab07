@@ -81,42 +81,71 @@ make regeneration a better option.
 
 ## Milestone 2: The pattern critique
 
-Read `notify/`. It works and the outbox tests pass.
-
 ### The patterns present
 
-List every design pattern you can name in that package. For each one, the class
-or classes that carry it.
+- Singleton: `NotifierFactory.getInstance()`.
+- Simple Factory: `NotifierFactory.createStrategy()` (not a subclass-based GoF Factory Method).
+- Strategy: `NotificationStrategy` and `EmailNotificationStrategy`, used by `NotificationHub`.
+- Observer: `NotificationHub`, `NotificationSubscriber`, and `OutboxSubscriber`.
+- Adapter: `OutboxSubscriber` translates `onNotification(String)` into `Outbox.append(String)`.
 
 ### The problem each one solves
 
-For each pattern you listed, what would have to be true about the requirements
-for that pattern to be the right call? One sentence each, not in terms of
-"flexibility".
+- Singleton: all callers must share one factory identity or one centrally owned resource.
+- Simple Factory: callers need renderer creation selected or configured in one place.
+- Strategy: the same publishing operation needs interchangeable formatting algorithms.
+- Observer: independent recipients must receive each publication without the publisher naming each recipient.
+- Adapter: an existing destination with a different API must participate as a subscriber.
 
 ### Which of those problems exist here
 
-For each pattern, does the problem it solves exist in this codebase? Point at
-the code that settles it.
+- Singleton: no resource ownership requirement is evident; the factory has no state beyond its own instance.
+- Simple Factory: `createStrategy()` always returns `new EmailNotificationStrategy()` with no selection or setup.
+- Strategy: only one implementation exists, and the hub always obtains it from that fixed factory.
+- Observer: the hub supports multiple subscribers, but searching `src/` finds only the constructor's registration of `OutboxSubscriber`; no other caller subscribes.
+- Adapter: the API mismatch exists because `Outbox` exposes `append`, but the adapter is only needed if the subscriber abstraction remains.
 
 ### The simpler structure
 
-**Your proposal.** What replaces `notify/`. Sketch the classes and the one
-method that matters.
+**Your proposal.** Keep `NotificationMessage`, `Outbox`, and a concrete
+`NotificationHub` holding an outbox. Remove the factory, formatting strategy,
+and subscriber layers. The key method becomes:
 
-**What stays the same.** The tested behavior it must still produce, named
-precisely enough that a reader can check it against the shipped tests.
+```java
+public void publish(NotificationMessage message) {
+    outbox.append("To: " + message.recipient()
+            + " | Subject: " + message.subject()
+            + " | " + message.body());
+}
+```
 
-**What you would keep, if anything.** If you would keep one interface, say
-which and why. "None of it" is a fine answer if you can defend it.
+**What stays the same.** Each publication appends exactly one fully rendered
+message in order, using the same recipient, subject, and body format.
+`publishedMessageLandsInTheOutboxFullyRendered()` and
+`aConfirmationFromTheWorkflowReachesTheOutbox()` pin that output; workflow tests
+also check notification counts. Keep message validation and outbox access.
+The shipped `hubDeliversToItsOneSubscriber()` and `factoryHandsBackTheSameInstance()`
+assert the current structure, so removing those APIs would not pass those tests
+unchanged. This is a proposal only: no notification code or tests are modified
+in this lab.
+
+**What you would keep, if anything.** No notification interface is needed for
+the current single format and single destination. Keep the message record and
+outbox because they represent the data and observable output.
 
 ### What would bring each layer back
 
-For at least two of the layers you would remove, what requirement, if it
-arrived next sprint, would make that layer the right structure? Be specific
-about the requirement, not about the pattern.
+- Strategy: callers must choose email or SMS formatting for each configured channel.
+- Factory: configuration must select among renderers with different construction dependencies.
+- Observer: every notification must reach both an outbox and an independently registered audit listener.
+- Adapter: an unmodifiable external destination exposing `write(String)` must join those subscribers.
+- Singleton: a process-wide SDK resource must have exactly one owner and all factories must share it; even then, explicit shared dependency injection deserves consideration.
 
-**Misuse or anti-pattern?** Say which this is and why the distinction matters.
+**Misuse or anti-pattern?** This is misuse of otherwise useful patterns:
+several layers address requirements absent here. If repeatedly applied as a
+solution regardless of requirements, it becomes an overengineering anti-pattern.
+The distinction matters because these patterns remain appropriate when the
+specific requirements above actually appear.
 
 ---
 
