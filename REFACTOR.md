@@ -13,20 +13,26 @@ Keep it short and specific. Point at methods, call sites, and test names.
 
 ### The pin (write this section before you direct the refactor)
 
-**The pin.** File and test name, plus one sentence naming the method and the
-observable result it pins. Not "recurring bookings work". Green against the
-shipped code, and you did not edit or delete an existing test method to get
-there.
+**The pin.** 
 
-**Why that one, and does a shipped test already cover it?** Of everything
-`BookingWorkflow` does, why is this the behavior worth a test? If something
-shipped comes close, say what your pin adds. If nothing does, say how you
-checked.
+`src/test/java/edu/cmu/cs214/scheduling/workflow/BookingWorkflowTest.java`,
+`recurringSubmitSkipsASlotThatStartsWhenAnotherEnds()`: `BookingWorkflow.submit()`
+skips the first recurring slot when it starts exactly when an existing booking
+ends, but stores and notifies for the free slot the following week.
+Before refactoring, `mvn -B test` passed: 36 tests, 0 failures, 0 errors, 0 skipped.
+No existing test method was edited or deleted.
 
-**What a regeneration would do differently here.** Suppose someone
-threw this class away and regenerated it from a one-line description of what a
-booking workflow does. Name the decision that would be made a second time, and
-say which way it would probably go.
+**Why that one, and does a shipped test already cover it?** This boundary is
+easy to change accidentally: regular bookings use strict overlap comparisons,
+while recurring bookings include touching endpoints. Reviewing `BookingWorkflowTest`
+showed that `regularSubmitAcceptsASlotThatStartsWhenAnotherEnds()` pins the regular
+case, but no shipped test pins the recurring case. This test checks the exact
+skipped slot, the successful next-week slot, the stored count, and the notification.
+
+**What a regeneration would do differently here.** Regeneration would have to
+choose whether touching endpoints count as a conflict. It would likely use the
+same strict overlap rule for both types, accepting the first recurring slot
+instead of skipping it and thereby adding a booking and a notification.
 
 ### The directive
 
