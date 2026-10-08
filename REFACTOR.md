@@ -36,10 +36,14 @@ instead of skipping it and thereby adding a booking and a notification.
 
 ### The directive
 
-**The refactor and the exact directive.** Name the refactor (one from the menu
-in the handout) and paste the directive you gave the agent, including the scope
-you set, meaning which files and packages were in bounds, which were not, and
-one line on why the boundary sits where it does.
+**The refactor and the exact directive.** Replace Conditional with Polymorphism.
+The user's exact directive was: "将条件语句替换为多态语句".
+The implementation scope established in the conversation was to replace the
+repeated type branches in `submit`, `cancel`, `priceOf`, and `describe` within
+`workflow/`, preserving the public API and all existing behavior. Other business
+packages and existing tests were out of bounds; `REFACTOR.md` records the work.
+This boundary keeps the change focused on workflow dispatch without changing
+the domain model, pricing, notification delivery, or reporting.
 
 ### The result
 
