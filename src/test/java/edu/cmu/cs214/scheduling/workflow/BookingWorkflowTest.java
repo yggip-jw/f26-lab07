@@ -8,6 +8,7 @@ import edu.cmu.cs214.scheduling.domain.BookingType;
 import edu.cmu.cs214.scheduling.domain.Member;
 import edu.cmu.cs214.scheduling.domain.MembershipTier;
 import edu.cmu.cs214.scheduling.domain.Room;
+import edu.cmu.cs214.scheduling.domain.TimeSlot;
 import edu.cmu.cs214.scheduling.notify.NotificationHub;
 import edu.cmu.cs214.scheduling.pricing.PriceCalculator;
 
@@ -110,6 +111,26 @@ class BookingWorkflowTest {
         assertEquals(4, store.activeInRoom("C-200").size());
         assertEquals(4, hub.getOutbox().size());
         assertEquals("S-1", outcome.getBooking().getSeriesId());
+    }
+
+    @Test
+    void recurringSubmitSkipsASlotThatStartsWhenAnotherEnds() {
+        workflow.submit(BookingRequest.regular("W-101", "m-1", MON_9AM, MON_10AM, 4));
+
+        BookingOutcome outcome = workflow.submit(
+                BookingRequest.recurring("W-101", "m-2", MON_10AM, MON_11AM, 2, 2));
+
+        // Characterize the existing recurring boundary rule: touching slots conflict.
+        assertTrue(outcome.isAccepted());
+        assertEquals(List.of(new TimeSlot(MON_10AM, MON_11AM)), outcome.getSkipped());
+        assertEquals(1, outcome.getBooked().size());
+        assertEquals(new TimeSlot(MON_10AM.plusWeeks(1), MON_11AM.plusWeeks(1)),
+                outcome.getBooking().getSlot());
+        assertEquals(2, store.activeInRoom("W-101").size());
+        assertEquals(2, hub.getOutbox().size());
+        assertEquals("To: grace@rooms.example.edu | Subject: Occurrence confirmed"
+                + " | Room Willow Room on 2026-10-12 in series "
+                + outcome.getBooking().getSeriesId(), hub.getOutbox().last());
     }
 
     @Test
