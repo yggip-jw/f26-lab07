@@ -151,9 +151,9 @@ specific requirements above actually appear.
 
 ## Milestone 3: The missing pattern
 
-Read `pricing/`. Not coded, one sentence.
+**The pattern.** Decorator fits `PriceCalculator` because weekend surcharges,
+long-booking discounts, and membership discounts are composable adjustments
+to a base price that could be layered independently, with rounding kept at the end.
 
-**The pattern.** Which one fits `PriceCalculator`, and the problem that makes
-it fit. Name the problem.
-
-**Would you apply it today?** Yes or no, one line, with the reason.
+**Would you apply it today?** No: the three adjustments and their order are fixed,
+so the current method is clearer than introducing a decorator class for each rule.
