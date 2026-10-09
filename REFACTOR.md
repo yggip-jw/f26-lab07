@@ -83,27 +83,23 @@ make regeneration a better option.
 
 ### The patterns present
 
-- Singleton: `NotifierFactory.getInstance()`.
-- Simple Factory: `NotifierFactory.createStrategy()` (not a subclass-based GoF Factory Method).
+- Factory: `NotifierFactory.createStrategy()` (not a subclass-based GoF Factory Method).
 - Strategy: `NotificationStrategy` and `EmailNotificationStrategy`, used by `NotificationHub`.
 - Observer: `NotificationHub`, `NotificationSubscriber`, and `OutboxSubscriber`.
 - Adapter: `OutboxSubscriber` translates `onNotification(String)` into `Outbox.append(String)`.
 
 ### The problem each one solves
 
-- Singleton: all callers must share one factory identity or one centrally owned resource.
-- Simple Factory: callers need renderer creation selected or configured in one place.
+
+- Factory: callers need renderer creation selected or configured in one place.
 - Strategy: the same publishing operation needs interchangeable formatting algorithms.
 - Observer: independent recipients must receive each publication without the publisher naming each recipient.
 - Adapter: an existing destination with a different API must participate as a subscriber.
 
 ### Which of those problems exist here
 
-- Singleton: no resource ownership requirement is evident; the factory has no state beyond its own instance.
-- Simple Factory: `createStrategy()` always returns `new EmailNotificationStrategy()` with no selection or setup.
+- Factory: `createStrategy()` always returns `new EmailNotificationStrategy()` with no selection or setup.
 - Strategy: only one implementation exists, and the hub always obtains it from that fixed factory.
-- Observer: the hub supports multiple subscribers, but searching `src/` finds only the constructor's registration of `OutboxSubscriber`; no other caller subscribes.
-- Adapter: the API mismatch exists because `Outbox` exposes `append`, but the adapter is only needed if the subscriber abstraction remains.
 
 ### The simpler structure
 
